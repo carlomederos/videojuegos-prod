@@ -1,0 +1,31 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpwd}
+      MYSQL_DATABASE: videojuegos
+      MYSQL_USER: user
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pwd}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "80:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql+pymysql://user:${MYSQL_PASSWORD:-pwd}@db/videojuegos
+      SECRET_KEY: ${SECRET_KEY:-cambia_esta_clave}
+
+volumes:
+  db_data:
