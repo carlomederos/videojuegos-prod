@@ -34,24 +34,19 @@ app.logger.setLevel(logging.ERROR)
 
 app.register_blueprint(api_bp, url_prefix='/api')
 
-# en produccion estos valores llegan como variables de entorno (docker-compose)
-# los valores por defecto solo sirven para correr la app en local
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'clave-solo-para-desarrollo')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///videojuegos.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# revisa la conexion antes de usarla, mysql cierra las conexiones inactivas
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True, 'pool_recycle': 280}
 
 db.init_app(app)
 
 
 def crear_tablas(intentos=10, espera=3):
-    # mysql puede tardar unos segundos en aceptar conexiones al iniciar el contenedor
     for intento in range(1, intentos + 1):
         try:
             with app.app_context():
                 db.create_all()
-                # gunicorn hace fork despues de cargar la app, no se deben compartir conexiones
                 db.engine.dispose()
             return
         except OperationalError:
